@@ -1,6 +1,8 @@
 package com.example.email;
 
 import java.nio.charset.Charset;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.time.LocalDate;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -56,21 +58,15 @@ public class EmailController {
     }
 
     @PostMapping("/register")
-    public String register(User user) {
-//System.out.println(user.getUsername());
-
-        // ИЗМЕНИТЬ ГЕНЕРАЦИЮ СИМВОЛОВ
-        byte[] array = new byte[7]; // length is bounded by 7
-        new Random().nextBytes(array);
-        generatedString = new String(array, Charset.forName("UTF-8"));
-
+    public String register(User user) throws NoSuchAlgorithmException {
+        generatedString = genHash(user);
         Email email = new Email();
         email.from = "officialkepik@gmail.com";
-        email.to = "officialkepik@gmail.com";
+        email.to = user.getEmail();
         email.subject = "Регистрация";
         email.template = "template.html";
         Map<String, Object> properties = new HashMap<>();
-        properties.put("name", "Имя");
+        properties.put("name", user.getName());
         properties.put("subscriptionDate", LocalDate.now().toString());
         properties.put("technologies", Arrays.asList("Java", "Python", "JavaScript"));
         properties.put("hash", generatedString);
@@ -88,5 +84,15 @@ public class EmailController {
             System.out.println("success");
 
         return "signup.html";
+    }
+
+    public String genHash(User user) throws NoSuchAlgorithmException {
+        MessageDigest mDigest = MessageDigest.getInstance("SHA1");
+        byte[] result = mDigest.digest(user.getPassword().getBytes());
+        StringBuffer sb = new StringBuffer();
+        for (int i = 0; i < result.length; i++) {
+            sb.append(Integer.toString((result[i] & 0xff) + 0x100, 16).substring(1));
+        }
+        return sb.toString();
     }
 }
